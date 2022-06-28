@@ -20,10 +20,12 @@ class MediciException extends Exception
 
     protected array $codeBag;
 
+    public array $errorDetail;
+
     /**
      * @throws MediciException
      */
-    public function __construct(string $code, $message = '')
+    public function __construct(string $code, $message = '', array $errorDetail = [])
     {
         $this->code = $code;
 
@@ -31,10 +33,12 @@ class MediciException extends Exception
 
         $this->message = $message ?: ResponseStatus::messagesBag($code);
 
+        $this->errorDetail = $errorDetail;
+
         parent::__construct($this->message);
     }
 
-    /**
+        /**
      * Render the exception into an HTTP response.
      *
      * @param  Request  $request
