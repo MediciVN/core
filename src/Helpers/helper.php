@@ -244,3 +244,34 @@ if (!function_exists('medici_logger')) {
         $logger->log($action, $description, $data, $params);
     }
 }
+
+if (!function_exists('generate_random_verification_code')) {
+
+    /**
+     * The function generate random verification
+     *
+     * @param int $length
+     *
+     * @return int
+     */
+    function generate_random_verification_code(int $length): int
+    {
+        mt_srand(make_seed());
+        do {
+            $verificationCode = mt_rand() % 1000000;
+        } while ($verificationCode < 100000);
+        return $verificationCode;
+    }
+}
+
+if (!function_exists('make_seed')) {
+
+    /**
+     * @return float|int|string
+     */
+    function make_seed(): int
+    {
+        list($usec, $sec) = explode(' ', microtime());
+        return $sec + $usec * 1000000;
+    }
+}
