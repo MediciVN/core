@@ -28,6 +28,7 @@ Functions:
 - upload_private_images
 - get_url_private
 - medici_logger
+- generate_random_verification_code
 
 ## EloquentNestedSet
 
