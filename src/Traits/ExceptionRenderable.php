@@ -4,15 +4,16 @@ namespace MediciVN\Core\Traits;
 
 use Throwable;
 use App\Utilities\ResponseStatus;
-use MediciVN\Core\Exceptions\MediciException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Auth\AuthenticationException;
+use MediciVN\Core\Exceptions\MediciException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 trait ExceptionRenderable
 {
-    public function renderExceptionResponse(Throwable $e): mixed
+    public function exceptionRenderResponse($e): JsonResponse
     {
         try {
             // write error to log file

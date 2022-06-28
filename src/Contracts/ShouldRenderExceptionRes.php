@@ -3,8 +3,9 @@
 namespace MediciVN\Core\Contracts;
 
 use Throwable;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 interface ShouldRenderExceptionRes
 {
-    public function renderExceptionResponse(Throwable $e): mixed;
+    public function renderExceptionResponse($e): JsonResponse;
 }
