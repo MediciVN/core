@@ -1,4 +1,5 @@
 # Medici Core
+
 Medici core package
 
 - Repository, Pipeline
@@ -11,8 +12,6 @@ Medici core package
 
 ## Helpers
 
----
-
 Add `MediciCoreHelperServiceProvider` to `config/app.php`, example:
 
 ```injectablephp
@@ -23,6 +22,7 @@ Add `MediciCoreHelperServiceProvider` to `config/app.php`, example:
 ```
 
 Functions:
+
 - upload_images
 - resize_image
 - upload_private_images
@@ -31,11 +31,10 @@ Functions:
 
 ## EloquentNestedSet
 
----
-
 Automatically update the tree when creating, updating and deleting a node.
 
 How to use:
+
 - First, a root node must be initialized in your model's table
 - Add `use EloquentNestedSet;` to your eloquent model, example:
 
@@ -95,11 +94,40 @@ class Category extends Model
 
 ```
 
+### Functions
+
+- `getTree`: get all nodes and return as `nested array`
+- `getFlatTree`: get all nodes and return as `flatten array`, the child nodes will be sorted after the parent node
+- `getAncestors`: get all `ancestor` nodes of current instance
+- `getAncestorsTree`: get all `ancestor` nodes of current instance and return as `nested array`
+- `getDescendants`: get all `descendant` nodes of current instance
+- `getDescendantsTree`: get all `descendant` nodes of current instance and return as `nested array`
+- `parent`: get the parent node to which the current instance belongs
+- `children`: get the child nodes of the current instance
+- `getLeafNodes`: get all leaf nodes - nodes with no children
+
+#### Other
+
+- `buildNestedTree`: build a nested tree base on `parent_id`
+
+### Query scopes
+
+[Laravel Eloquent Query Scopes](https://laravel.com/docs/9.x/eloquent#query-scopes)
+
+The `root` node is automatically ignored by a global scope of `ignore_root`.
+To get the `root` node, use `withoutGlobalScope('ignore_root')`.
+
+- `ancestors`
+- `descendants`
+- `flattenTree`
+- `leafNodes`
+
 ### Validation
 
 `NestedSetParentRule` is a utility to validate parent_id value when creating and updating a node.
 
 It will be checked with the following condition:
+
 - exists in the database
 - is not the same as the id of the current entity
 - not a descendant of the current entity
@@ -130,4 +158,4 @@ class StoreCategoryRequest extends FormRequest
 - If you are using `SoftDelete` and intend to stop using it, you must deal with soft deleted records.
   The tree will be shuffled, and the calculation of lft and rgt may go wrong.
 - `SoftDelete` is required if you use `queue`.
-  Because the `queue` will not run in `deleting` and `deleted` events if a record is permanently deleted. 
+  Because the `queue` will not run in `deleting` and `deleted` events if a record is permanently deleted.

@@ -182,6 +182,29 @@ class EloquentNestedSetTest extends TestCase
     }
 
     /** @test */
+    public function it_can_return_leaf_nodes()
+    {
+        Category::factory()->createMany([
+            ["name" => "Category 2"],
+            ["name" => "Category 3"],
+            ["name" => "Category 4"],
+            ["name" => "Category 5", "parent_id" => 2],
+            ["name" => "Category 6", "parent_id" => 2],
+            ["name" => "Category 7", "parent_id" => 6],
+        ]);
+
+        $root = Category::withoutGlobalScope('ignore_root')->find(Category::ROOT_ID);
+        $leafNodes = Category::getLeafNodes();
+        [$c3, $c4, $c5, $c7] = $leafNodes;
+        $this->assertEquals(4, $leafNodes->count());
+        $this->assertEquals(['Category 3', 10, 11], [$c3->name, $c3->lft, $c3->rgt]);
+        $this->assertEquals(['Category 4', 12, 13], [$c4->name, $c4->lft, $c4->rgt]);
+        $this->assertEquals(['Category 5', 3, 4], [$c5->name, $c5->lft, $c5->rgt]);
+        $this->assertEquals(['Category 7', 6, 7], [$c7->name, $c7->lft, $c7->rgt]);
+        $this->assertEquals([1, 14], [$root->lft, $root->rgt]);
+    }
+
+    /** @test */
     public function it_can_calculate_rightly_lft_rgt_depth_for_new_nodes()
     {
         $root = Category::withoutGlobalScope('ignore_root')->find(Category::ROOT_ID);

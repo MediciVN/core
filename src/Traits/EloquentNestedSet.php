@@ -48,7 +48,7 @@ trait EloquentNestedSet
     }
 
     /**
-     * Get custom left column name
+     * Get custom depth column name
      *
      * @return string
      */
@@ -229,6 +229,30 @@ trait EloquentNestedSet
     }
 
     /**
+     * Scope a query to get flatten array
+     * Flatten tree: nodes are sorted in order child nodes are sorted after parent node
+     *
+     * @param $query
+     * @return void
+     */
+    public function scopeFlattenTree($query)
+    {
+        return $query->orderBy(static::leftColumn(), 'ASC');
+    }
+
+    /**
+     * Scope a query to find leaf node
+     * Leaf nodes: nodes without children, with left = right - 1
+     *
+     * @param $query
+     * @return void
+     */
+    public function scopeLeafNodes($query)
+    {
+        return $query->where(static::leftColumn(), '=', DB::raw(static::rightColumn() . " - 1"));
+    }
+
+    /**
      * Lấy tất cả các entity cha, sắp xếp theo thứ tự entity cha gần nhất đầu tiên.
      *
      * Các entity cha trong 1 cây sẽ có
@@ -273,28 +297,6 @@ trait EloquentNestedSet
     }
 
     /**
-     * Initial a query builder to interact with tree
-     *
-     * @param $parentId
-     * @return Builder
-     */
-    public static function tree($parentId = null): Builder
-    {
-        $parentId = $parentId ?: static::rootId();
-        $tableName = static::tableName();
-
-        return static::query()
-            ->selectRaw("$tableName.*")
-            ->join("$tableName as parent", function ($join) use ($tableName, $parentId) {
-                $join
-                    ->on("$tableName." . static::leftColumn(), '>', 'parent.' . static::leftColumn())
-                    ->on("$tableName." . static::leftColumn(), '<', 'parent.' . static::rightColumn())
-                    ->where('parent.' . static::primaryColumn(), '=', $parentId);
-            })
-            ->orderBy("$tableName." . static::leftColumn());
-    }
-
-    /**
      * Build a nested tree
      *
      * @param Collection $nodes
@@ -322,9 +324,7 @@ trait EloquentNestedSet
      */
     public static function getTree(): Collection
     {
-        $nodes = static::tree()->get();
-
-        return static::buildNestedTree($nodes);
+        return static::buildNestedTree(static::flattenTree()->get());
     }
 
     /**
@@ -334,7 +334,17 @@ trait EloquentNestedSet
      */
     public static function getFlatTree(): Collection
     {
-        return static::tree()->get();
+        return static::flattenTree()->get();
+    }
+
+    /**
+     * Get all leaf nodes
+     *
+     * @return mixed
+     */
+    public static function getLeafNodes()
+    {
+        return static::leafNodes()->get();
     }
 
     /**
