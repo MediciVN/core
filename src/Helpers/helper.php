@@ -4,8 +4,30 @@ use Carbon\Carbon;
 use MediciVN\Core\Logger\Logger;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManagerStatic as Image;
+use Intervention\Image\ImageManagerStatic as Image; 
 use Intervention\Image\Exception\NotReadableException;
+
+if (! function_exists('is_upload_file')) {
+    function is_upload_file($source): bool
+    {
+        return $source instanceof UploadedFile && filter_var($source, FILTER_VALIDATE_URL);
+    }
+}
+
+if (! function_exists('get_file_name_prefix')) {
+    function get_file_name_prefix($source, string $filename): string
+    {
+        if ($filename != '') {
+            return $filename;
+        }
+
+        return ltrim(implode('_', [
+            auth()->id(),
+            pathinfo($source->getClientOriginalName(), PATHINFO_FILENAME),
+            uniqid(Carbon::now()->timestamp),
+        ]), '/');
+    }
+}
 
 if (!function_exists('upload_images')) {
     /**
@@ -19,29 +41,19 @@ if (!function_exists('upload_images')) {
      */
     function upload_images($source, $targetPath, array $sizes = [], $filename = ''): bool|array
     {
-        if (!($source instanceof UploadedFile) && !filter_var($source, FILTER_VALIDATE_URL)) {
+        if (! is_upload_file($source)) {
             return false;
         }
 
         $targetPath = rtrim($targetPath, '/');
+        $filenamePrefix = get_file_name_prefix($source, $filename);
 
-        if ($filename != '') {
-            $filenamePrefix = $filename;
-        } else {
-            $filenamePrefix = implode('_', [
-                auth()->id(),
-                pathinfo($source->getClientOriginalName(), PATHINFO_FILENAME),
-                uniqid(Carbon::now()->timestamp),
-            ]);
-        }
-        $filenamePrefix = ltrim($filenamePrefix, '/');
-        $extension = '';
-        $disk = Storage::disk(env('FILESYSTEM_CLOUD', 's3'));
         try {
             $image = Image::make($source);
         } catch (NotReadableException $ex) {
             throw $ex;
         }
+
         $result = [];
 
         if (!$image->mime()) {
@@ -51,6 +63,7 @@ if (!function_exists('upload_images')) {
         $extension = get_image_extension($image);
 
         // Store raw image
+        $disk = Storage::disk(env('FILESYSTEM_CLOUD', 's3'));
         $filepath = "{$targetPath}/{$filenamePrefix}.{$extension}";
         $disk->put($filepath, file_get_contents($source), 'public');
         $result['raw'] = $disk->url($filepath);
