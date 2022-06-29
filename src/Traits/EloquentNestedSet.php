@@ -368,6 +368,26 @@ trait EloquentNestedSet
     }
 
     /**
+     * Check given id is a ancestor of current instance
+     *
+     * @return bool
+     */
+    public function hasAncestor($id): bool
+    {
+        return $this->ancestors()->where(static::primaryColumn(), '=', $id)->exists();
+    }
+
+    /**
+     * Check given id is a descendant of current instance
+     *
+     * @return bool
+     */
+    public function hasDescendant($id): bool
+    {
+        return $this->descendants()->where(static::primaryColumn(), '=', $id)->exists();
+    }
+
+    /**
      * @return int
      */
     public function getWidth(): int
@@ -403,8 +423,8 @@ trait EloquentNestedSet
     {
         try {
             DB::beginTransaction();
-            $node = static::find($this->id);
-            $parent = static::withoutGlobalScope('ignore_root')->find($node->{static::parentIdColumn()});
+            $node = static::findOrFail($this->id);
+            $parent = static::withoutGlobalScope('ignore_root')->findOrFail($node->{static::parentIdColumn()});
             $parentRgt = $parent->{static::rightColumn()};
 
             // Node mới sẽ được thêm vào sau (bên phải) các nodes cùng cha
@@ -440,7 +460,15 @@ trait EloquentNestedSet
         try {
             DB::beginTransaction();
             // Khi dùng queue, cần lấy lft và rgt mới nhất trong DB ra tính toán.
-            $node = static::find($this->id);
+            $node = static::findOrFail($this->id);
+
+            if ($node->hasDescendant($newParentId)) {
+                throw new Exception(
+                    "The new parent node with id={$newParentId} is a descendant of current node id={$node->id}"
+                );
+            }
+
+            $newParent = static::withoutGlobalScope('ignore_root')->findOrFail($newParentId);
             $currentLft = $node->{static::leftColumn()};
             $currentRgt = $node->{static::rightColumn()};
             $currentDepth = $node->{static::depthColumn()};
@@ -463,7 +491,7 @@ trait EloquentNestedSet
                 ->update([static::leftColumn() => DB::raw(static::leftColumn() . " - $width")]);
 
             // Tạo khoảng trống cho node hiện tại ở node cha mới, cập nhật các node bên phải của node cha mới
-            $newParent = static::withoutGlobalScope('ignore_root')->find($newParentId);
+            $newParent->refresh();
             $newParentRgt = $newParent->{static::rightColumn()};
 
             (clone $query)

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediciVN\Core\Tests\Models\Category;
 use MediciVN\Core\Tests\Models\CategorySoftDelete;
 use MediciVN\Core\Tests\TestCase;
+use Exception;
 
 class EloquentNestedSetTest extends TestCase
 {
@@ -36,6 +37,144 @@ class EloquentNestedSetTest extends TestCase
     {
         $this->assertTrue(CategorySoftDelete::IsSoftDelete());
         $this->assertNotTrue(Category::IsSoftDelete());
+    }
+
+    /** @test */
+    public function it_must_to_check_descendant_or_not()
+    {
+        $c2 = Category::factory()->create(["name" => "Category 2"])->refresh();
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id])->refresh();
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c3->id])->refresh();
+        $c5 = Category::factory()->create(["name" => "Category 5", "parent_id" => $c4->id])->refresh();
+
+        $c2->refresh();
+        $c3->refresh();
+        $c4->refresh();
+        $c5->refresh();
+
+        $this->assertTrue($c2->hasDescendant($c3->id));
+        $this->assertTrue($c2->hasDescendant($c4->id));
+        $this->assertTrue($c2->hasDescendant($c5->id));
+
+        $this->assertTrue($c3->hasDescendant($c4->id));
+        $this->assertTrue($c3->hasDescendant($c5->id));
+
+        $this->assertFalse($c2->hasDescendant($c2->id));
+        $this->assertFalse($c3->hasDescendant($c2->id));
+        $this->assertFalse($c4->hasDescendant($c2->id));
+        $this->assertFalse($c5->hasDescendant($c2->id));
+    }
+
+    /** @test */
+    public function it_must_to_check_ancestor_or_not()
+    {
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c3->id]);
+        $c5 = Category::factory()->create(["name" => "Category 5", "parent_id" => $c4->id]);
+
+        $c2->refresh();
+        $c3->refresh();
+        $c4->refresh();
+        $c5->refresh();
+
+        $this->assertFalse($c2->hasAncestor($c2->id));
+        $this->assertFalse($c2->hasAncestor($c3->id));
+        $this->assertFalse($c2->hasAncestor($c4->id));
+        $this->assertFalse($c2->hasAncestor($c5->id));
+
+        $this->assertTrue($c3->hasAncestor($c2->id));
+        $this->assertTrue($c4->hasAncestor($c2->id));
+        $this->assertTrue($c5->hasAncestor($c2->id));
+    }
+
+    /** @test */
+    public function it_must_to_throw_exception_if_new_parent_that_is_a_descendant_of_current_node()
+    {
+        $this->expectException(Exception::class);
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c3->id]);
+
+        $c2->parent_id = $c4->id;
+        $c2->save();
+    }
+
+    /** @test */
+    public function it_must_return_ancestors_of_current_node()
+    {
+        $c1 = Category::factory()->create(["name" => "Category 1"]);
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c3->id]);
+        $c5 = Category::factory()->create(["name" => "Category 5", "parent_id" => $c4->id]);
+        $c6 = Category::factory()->create(["name" => "Category 6"]);
+        $c7 = Category::factory()->create(["name" => "Category 7"]);
+        $c8 = Category::factory()->create(["name" => "Category 8"]);
+
+        $c1->refresh();
+        $c2->refresh();
+        $c3->refresh();
+        $c4->refresh();
+        $c5->refresh();
+        $c6->refresh();
+        $c7->refresh();
+        $c8->refresh();
+
+        $c5_ancestors = $c5->getAncestors();
+
+        $this->assertNotContains($c1->toArray(), $c5_ancestors->toArray());
+        $this->assertContains($c2->toArray(), $c5_ancestors->toArray());
+        $this->assertContains($c3->toArray(), $c5_ancestors->toArray());
+        $this->assertContains($c4->toArray(), $c5_ancestors->toArray());
+        $this->assertNotContains($c5->toArray(), $c5_ancestors->toArray());
+        $this->assertNotContains($c6->toArray(), $c5_ancestors->toArray());
+        $this->assertNotContains($c7->toArray(), $c5_ancestors->toArray());
+        $this->assertNotContains($c8->toArray(), $c5_ancestors->toArray());
+
+        $c4_ancestors = $c4->getAncestors();
+
+        $this->assertNotContains($c1->toArray(), $c4_ancestors->toArray());
+        $this->assertContains($c2->toArray(), $c4_ancestors->toArray());
+        $this->assertContains($c3->toArray(), $c4_ancestors->toArray());
+        $this->assertNotContains($c4->toArray(), $c4_ancestors->toArray());
+        $this->assertNotContains($c5->toArray(), $c4_ancestors->toArray());
+        $this->assertNotContains($c6->toArray(), $c4_ancestors->toArray());
+        $this->assertNotContains($c7->toArray(), $c4_ancestors->toArray());
+        $this->assertNotContains($c8->toArray(), $c4_ancestors->toArray());
+    }
+
+    /** @test */
+    public function it_must_return_descendants_of_current_node()
+    {
+        $c1 = Category::factory()->create(["name" => "Category 1"]);
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c3->id]);
+        $c5 = Category::factory()->create(["name" => "Category 5", "parent_id" => $c4->id]);
+        $c6 = Category::factory()->create(["name" => "Category 6"]);
+        $c7 = Category::factory()->create(["name" => "Category 7"]);
+        $c8 = Category::factory()->create(["name" => "Category 8"]);
+
+        $c1->refresh();
+        $c2->refresh();
+        $c3->refresh();
+        $c4->refresh();
+        $c5->refresh();
+        $c6->refresh();
+        $c7->refresh();
+        $c8->refresh();
+
+        $c2_descendants = $c2->getDescendants();
+
+        $this->assertNotContains($c1->toArray(), $c2_descendants->toArray());
+        $this->assertNotContains($c2->toArray(), $c2_descendants->toArray());
+        $this->assertContains($c3->toArray(), $c2_descendants->toArray());
+        $this->assertContains($c4->toArray(), $c2_descendants->toArray());
+        $this->assertContains($c5->toArray(), $c2_descendants->toArray());
+        $this->assertNotContains($c6->toArray(), $c2_descendants->toArray());
+        $this->assertNotContains($c7->toArray(), $c2_descendants->toArray());
+        $this->assertNotContains($c8->toArray(), $c2_descendants->toArray());
     }
 
     /** @test */
