@@ -29,6 +29,30 @@ if (! function_exists('get_file_name_prefix')) {
     }
 }
 
+if (! function_exists('resize_and_upload_images')) {
+    function resize_and_upload_images($image, array $sizes, string $extension): array
+    {
+        foreach ($sizes as $key => $size) {
+            $hasResized = resize_image($image, $size['width'], $size['height']);
+
+            if (!$hasResized) {
+                $result[$key] = null;
+                continue;
+            }
+
+            $filepath = "{$targetPath}/{$filenamePrefix}_{$size['suffix']}_{$size['width']}x{$size['height']}.{$extension}";
+            $disk->put(
+                $filepath,
+                (string)$image->encode($extension, 'jpg' !== $extension ? 95 : null),
+                'public'
+            );
+            $result[$key] = $disk->url($filepath);
+        }
+
+        return $result;
+    }
+}
+
 if (!function_exists('upload_images')) {
     /**
      * The function upload image and response all image sizes.
