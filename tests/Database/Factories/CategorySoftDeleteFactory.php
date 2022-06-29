@@ -1,6 +1,6 @@
 <?php
 
-namespace MediciVN\Core\Tests\database\Factories;
+namespace MediciVN\Core\Tests\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use MediciVN\Core\Tests\Models\CategorySoftDelete;
