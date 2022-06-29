@@ -216,8 +216,8 @@ if (!function_exists('get_url_private')) {
         $url = (string)$request->getUri();
 
         $url = str_replace(
-            "https://s3." . env('AWS_DEFAULT_REGION_PRIVATE', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET_PRIVATE', 'medici.dev.private') . "/", 
-            env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn/'), 
+            "https://s3." . env('AWS_DEFAULT_REGION_PRIVATE', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET_PRIVATE', 'medici.dev.private'), 
+            env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'), 
             $url
         );
 
