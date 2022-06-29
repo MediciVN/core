@@ -89,7 +89,7 @@ class EloquentNestedSetTest extends TestCase
     }
 
     /** @test */
-    public function it_must_to_throw_exception_if_new_parent_that_is_a_descendant_of_current_node()
+    public function it_must_to_throw_exception_if_new_parent_is_a_descendant_of_current_node()
     {
         $this->expectException(Exception::class);
         $c2 = Category::factory()->create(["name" => "Category 2"]);
@@ -349,8 +349,12 @@ class EloquentNestedSetTest extends TestCase
         $root = Category::withoutGlobalScope('ignore_root')->find(Category::ROOT_ID);
         $this->assertEquals([1, 2], [$root->lft, $root->rgt]);
 
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $this->assertEquals([Category::ROOT_ID, 1, 'Category 2', 2, 3], [$c2->parent_id, $c2->depth, $c2->name, $c2->lft, $c2->rgt]);
+        $root->refresh();
+        $this->assertEquals([1, 4], [$root->lft, $root->rgt]);
+
         Category::factory()->createMany([
-            ["name" => "Category 2"],
             ["name" => "Category 3"],
             ["name" => "Category 4"],
             ["name" => "Category 5"],
@@ -495,7 +499,7 @@ class EloquentNestedSetTest extends TestCase
     }
 
     /** @test */
-    public function it_can_calculate_rightly_lft_rgt_when_update()
+    public function it_can_calculate_rightly_lft_rgt_depth_when_update()
     {
         $root = Category::withoutGlobalScope('ignore_root')->find(Category::ROOT_ID);
         $this->assertEquals([1, 2], [$root->lft, $root->rgt]);
