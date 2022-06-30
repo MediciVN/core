@@ -33,15 +33,19 @@ Functions:
 - upload_private_image_v2
 
 ### Upload Image
-- Upload a public image
+- Upload an image
 ```php
     $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3')); // disk driver instance
     $uploader = new Uploader($source, $disk, $path); // uploader instance
     $uploader->setSizes($size); // resize image if required
+    $uploader->setFileName($fileName); // want to set a specific file name
     $uploader->upload()->getResult(); // upload and get result
 
     // or you can chain the methods in one line
-    $uploader->setSizes($size)->upload()->getResult();
+    $uploader->setSizes($size)->setFileName($fileName)->upload()->getResult();
+
+    // global function
+    upload_image_v2($source, $path, $size, $fileName);
 ```
 
 ## EloquentNestedSet

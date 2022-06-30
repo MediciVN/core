@@ -279,12 +279,13 @@ if (!function_exists('make_seed')) {
 }
 
 if (! function_exists('upload_image_v2')) {
-    function upload_image_v2($source, $path, $size = [])
+    function upload_image_v2($source, $path, $size = [], string $fileName = '')
     {
         try {
             $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3'));
             $uploader = new Uploader($source, $disk, $path);
             return $uploader->setSizes($size)
+                            ->setFileName($fileName)
                             ->upload()
                             ->getResult();
         } catch (Throwable $e) {
@@ -294,12 +295,13 @@ if (! function_exists('upload_image_v2')) {
 }
 
 if (! function_exists('upload_private_image_v2')) {
-    function upload_private_image_v2($source, $path, $size = [])
+    function upload_private_image_v2($source, $path, $size = [], string $fileName = '')
     {
         try {
             $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'));
             $uploader = new Uploader($source, $disk, $path);
             return $uploader->setSizes($size)
+                            ->setFileName($fileName)
                             ->upload()
                             ->getResult();
         } catch (Throwable $e) {
