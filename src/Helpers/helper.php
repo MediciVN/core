@@ -3,55 +3,11 @@
 use Carbon\Carbon;
 use MediciVN\Core\Logger\Logger;
 use Illuminate\Http\UploadedFile;
+use MediciVN\Core\Uploader\Uploader;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManagerStatic as Image; 
+use MediciVN\Core\Exceptions\MediciException;
+use Intervention\Image\ImageManagerStatic as Image;
 use Intervention\Image\Exception\NotReadableException;
-
-if (! function_exists('is_upload_file')) {
-    function is_upload_file($source): bool
-    {
-        return $source instanceof UploadedFile && filter_var($source, FILTER_VALIDATE_URL);
-    }
-}
-
-if (! function_exists('get_file_name_prefix')) {
-    function get_file_name_prefix($source, string $filename): string
-    {
-        if ($filename != '') {
-            return $filename;
-        }
-
-        return ltrim(implode('_', [
-            auth()->id(),
-            pathinfo($source->getClientOriginalName(), PATHINFO_FILENAME),
-            uniqid(Carbon::now()->timestamp),
-        ]), '/');
-    }
-}
-
-if (! function_exists('resize_and_upload_images')) {
-    function resize_and_upload_images($image, array $sizes, string $extension): array
-    {
-        foreach ($sizes as $key => $size) {
-            $hasResized = resize_image($image, $size['width'], $size['height']);
-
-            if (!$hasResized) {
-                $result[$key] = null;
-                continue;
-            }
-
-            $filepath = "{$targetPath}/{$filenamePrefix}_{$size['suffix']}_{$size['width']}x{$size['height']}.{$extension}";
-            $disk->put(
-                $filepath,
-                (string)$image->encode($extension, 'jpg' !== $extension ? 95 : null),
-                'public'
-            );
-            $result[$key] = $disk->url($filepath);
-        }
-
-        return $result;
-    }
-}
 
 if (!function_exists('upload_images')) {
     /**
@@ -65,19 +21,29 @@ if (!function_exists('upload_images')) {
      */
     function upload_images($source, $targetPath, array $sizes = [], $filename = ''): bool|array
     {
-        if (! is_upload_file($source)) {
+        if (!($source instanceof UploadedFile) && !filter_var($source, FILTER_VALIDATE_URL)) {
             return false;
         }
 
         $targetPath = rtrim($targetPath, '/');
-        $filenamePrefix = get_file_name_prefix($source, $filename);
 
+        if ($filename != '') {
+            $filenamePrefix = $filename;
+        } else {
+            $filenamePrefix = implode('_', [
+                auth()->id(),
+                pathinfo($source->getClientOriginalName(), PATHINFO_FILENAME),
+                uniqid(Carbon::now()->timestamp),
+            ]);
+        }
+        $filenamePrefix = ltrim($filenamePrefix, '/');
+        $extension = '';
+        $disk = Storage::disk(env('FILESYSTEM_CLOUD', 's3'));
         try {
             $image = Image::make($source);
         } catch (NotReadableException $ex) {
             throw $ex;
         }
-
         $result = [];
 
         if (!$image->mime()) {
@@ -87,7 +53,6 @@ if (!function_exists('upload_images')) {
         $extension = get_image_extension($image);
 
         // Store raw image
-        $disk = Storage::disk(env('FILESYSTEM_CLOUD', 's3'));
         $filepath = "{$targetPath}/{$filenamePrefix}.{$extension}";
         $disk->put($filepath, file_get_contents($source), 'public');
         $result['raw'] = $disk->url($filepath);
@@ -310,5 +275,33 @@ if (!function_exists('make_seed')) {
     {
         list($usec, $sec) = explode(' ', microtime());
         return $sec + $usec * 1000000;
+    }
+}
+
+if (! function_exists('upload_image_v2')) {
+    function upload_image_v2($source, $path, $size = [])
+    {
+        try {
+            $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3'));
+            $uploader = new Uploader($source, $disk, $path, $size);
+            return $uploader->upload()->getResult();
+        } catch (Throwable $e) {
+            throw new MediciException($e->geCode(), "Could not upload the image. Please check the log for error detail.");
+        }
+
+    }
+}
+
+if (! function_exists('upload_private_image_v2')) {
+    function upload_private_image_v2($source, $path, $size = [])
+    {
+        try {
+            $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'));
+            $uploader = new Uploader($source, $disk, $path, $size);
+            return $uploader->upload()->getResult();
+        } catch (Throwable $e) {
+            throw new MediciException($e->geCode(), "Could not upload the image. Please check the log for error detail.");
+        }
+
     }
 }
