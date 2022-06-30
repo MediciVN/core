@@ -4,7 +4,7 @@ namespace MediciVN\Core\Tests\Models;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use MediciVN\Core\Tests\database\Factories\CategorySoftDeleteFactory;
+use MediciVN\Core\Tests\Database\Factories\CategorySoftDeleteFactory;
 
 class CategorySoftDelete extends Category
 {

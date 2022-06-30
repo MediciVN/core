@@ -368,6 +368,26 @@ trait EloquentNestedSet
     }
 
     /**
+     * Check given id is a ancestor of current instance
+     *
+     * @return bool
+     */
+    public function hasAncestor($id): bool
+    {
+        return $this->ancestors()->where(static::primaryColumn(), '=', $id)->exists();
+    }
+
+    /**
+     * Check given id is a descendant of current instance
+     *
+     * @return bool
+     */
+    public function hasDescendant($id): bool
+    {
+        return $this->descendants()->where(static::primaryColumn(), '=', $id)->exists();
+    }
+
+    /**
      * @return int
      */
     public function getWidth(): int
@@ -403,26 +423,25 @@ trait EloquentNestedSet
     {
         try {
             DB::beginTransaction();
-            $node = static::find($this->id);
-            $parent = static::withoutGlobalScope('ignore_root')->find($node->{static::parentIdColumn()});
-            $parentRgt = $parent->{static::rightColumn()};
+            // Khi dùng queue, cần lấy lft và rgt mới nhất trong DB ra tính toán.
+            $this->refresh();
+            $parent     = static::withoutGlobalScope('ignore_root')->findOrFail($this->{static::parentIdColumn()});
+            $parentRgt  = $parent->{static::rightColumn()};
 
-            // Node mới sẽ được thêm vào sau (bên phải) các nodes cùng cha
-            $node->{static::depthColumn()} = $parent->{static::depthColumn()} + 1;
-            $node->{static::leftColumn()} = $parentRgt;
-            $node->{static::rightColumn()} = $parentRgt + 1;
-            $width = $node->getWidth();
-
-            // Cập nhật các node bên phải của node cha
+            // Tạo khoảng trống cho node hiện tại ở node cha mới, cập nhật các node bên phải của node cha mới
             static::withoutGlobalScope('ignore_root')
                 ->where(static::rightColumn(), '>=', $parentRgt)
-                ->update([static::rightColumn() => DB::raw(static::rightColumn() . " + $width")]);
+                ->update([static::rightColumn() => DB::raw(static::rightColumn() . " + 2")]);
 
             static::query()
                 ->where(static::leftColumn(), '>', $parentRgt)
-                ->update([static::leftColumn() => DB::raw(static::leftColumn() . " + $width")]);
+                ->update([static::leftColumn() => DB::raw(static::leftColumn() . " + 2")]);
 
-            $node->savePositionQuietly();
+            // Node mới sẽ được thêm vào sau (bên phải) các nodes cùng cha
+            $this->{static::depthColumn()}  = $parent->{static::depthColumn()} + 1;
+            $this->{static::leftColumn()}   = $parentRgt;
+            $this->{static::rightColumn()}  = $parentRgt + 1;
+            $this->savePositionQuietly();
             DB::commit();
         } catch (Throwable $th) {
             DB::rollBack();
@@ -440,30 +459,38 @@ trait EloquentNestedSet
         try {
             DB::beginTransaction();
             // Khi dùng queue, cần lấy lft và rgt mới nhất trong DB ra tính toán.
-            $node = static::find($this->id);
-            $currentLft = $node->{static::leftColumn()};
-            $currentRgt = $node->{static::rightColumn()};
-            $currentDepth = $node->{static::depthColumn()};
-            $width = $node->getWidth();
-            $query = static::withoutGlobalScope('ignore_root')->whereNot(static::primaryColumn(), $node->id);
+            $this->refresh();
+
+            if ($this->hasDescendant($newParentId)) {
+                throw new Exception(
+                    "The new parent node with id={$newParentId} is a descendant of current node id={$this->id}"
+                );
+            }
+
+            $newParent      = static::withoutGlobalScope('ignore_root')->findOrFail($newParentId);
+            $currentLft     = $this->{static::leftColumn()};
+            $currentRgt     = $this->{static::rightColumn()};
+            $currentDepth   = $this->{static::depthColumn()};
+            $width          = $this->getWidth();
+            $query          = static::withoutGlobalScope('ignore_root')->whereNot(static::primaryColumn(), $this->id);
 
             // Tạm thời để left và right các node con của node hiện tại ở giá trị âm
-            $node->descendants()->update([
+            $this->descendants()->update([
                 static::leftColumn() => DB::raw(static::leftColumn() . " * (-1)"),
                 static::rightColumn() => DB::raw(static::rightColumn() . " * (-1)"),
             ]);
 
             // Giả định node hiện tại bị xóa khỏi cây, cập nhật các node bên phải của node hiện tại
             (clone $query)
-                ->where(static::rightColumn(), '>', $node->{static::rightColumn()})
+                ->where(static::rightColumn(), '>', $this->{static::rightColumn()})
                 ->update([static::rightColumn() => DB::raw(static::rightColumn() . " - $width")]);
 
             (clone $query)
-                ->where(static::leftColumn(), '>', $node->{static::rightColumn()})
+                ->where(static::leftColumn(), '>', $this->{static::rightColumn()})
                 ->update([static::leftColumn() => DB::raw(static::leftColumn() . " - $width")]);
 
             // Tạo khoảng trống cho node hiện tại ở node cha mới, cập nhật các node bên phải của node cha mới
-            $newParent = static::withoutGlobalScope('ignore_root')->find($newParentId);
+            $newParent->refresh();
             $newParentRgt = $newParent->{static::rightColumn()};
 
             (clone $query)
@@ -475,14 +502,16 @@ trait EloquentNestedSet
                 ->update([static::leftColumn() => DB::raw(static::leftColumn() . " + $width")]);
 
             // Cập nhật lại node hiện tại theo node cha mới
-            $node->{static::depthColumn()} = $newParent->{static::depthColumn()} + 1;
-            $node->{static::parentIdColumn()} = $newParentId;
-            $node->{static::leftColumn()} = $newParentRgt;
-            $node->{static::rightColumn()} = $newParentRgt + $width - 1;
-            $distance = $node->{static::rightColumn()} - $currentRgt;
-            $depthChange = $node->{static::depthColumn()} - $currentDepth;
+            $this->{static::depthColumn()}      = $newParent->{static::depthColumn()} + 1;
+            $this->{static::parentIdColumn()}   = $newParentId;
+            $this->{static::leftColumn()}       = $newParentRgt;
+            $this->{static::rightColumn()}      = $newParentRgt + $width - 1;
+            $this->savePositionQuietly();
 
             // Cập nhật lại các node con có left và right âm
+            $distance       = $this->{static::rightColumn()} - $currentRgt;
+            $depthChange    = $this->{static::depthColumn()} - $currentDepth;
+
             static::query()
                 ->where(static::leftColumn(), '<', 0 - $currentLft)
                 ->where(static::rightColumn(), '>', 0 - $currentRgt)
@@ -492,7 +521,6 @@ trait EloquentNestedSet
                     static::depthColumn() => DB::raw(static::depthColumn() . " + $depthChange"),
                 ]);
 
-            $node->savePositionQuietly();
             DB::commit();
         } catch (Throwable $th) {
             DB::rollBack();

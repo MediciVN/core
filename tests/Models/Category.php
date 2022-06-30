@@ -5,7 +5,7 @@ namespace MediciVN\Core\Tests\Models;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use MediciVN\Core\Tests\database\Factories\CategoryFactory;
+use MediciVN\Core\Tests\Database\Factories\CategoryFactory;
 use MediciVN\Core\Traits\EloquentNestedSet;
 
 class Category extends Model
