@@ -286,7 +286,7 @@ if (! function_exists('upload_image_v2')) {
             $uploader = new Uploader($source, $disk, $path, $size);
             return $uploader->upload()->getResult();
         } catch (Throwable $e) {
-            throw new MediciException($e->geCode(), "Could not upload the image. Please check the log for error detail.");
+            throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
         }
 
     }
@@ -300,7 +300,7 @@ if (! function_exists('upload_private_image_v2')) {
             $uploader = new Uploader($source, $disk, $path, $size);
             return $uploader->upload()->getResult();
         } catch (Throwable $e) {
-            throw new MediciException($e->geCode(), "Could not upload the image. Please check the log for error detail.");
+            throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
         }
 
     }
