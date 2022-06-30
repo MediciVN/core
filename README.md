@@ -29,6 +29,20 @@ Functions:
 - get_url_private
 - medici_logger
 - generate_random_verification_code
+- upload_image_v2
+- upload_private_image_v2
+
+### Upload Image
+- Upload a public image
+```php
+    $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3')); // disk driver instance
+    $uploader = new Uploader($source, $disk, $path); // uploader instance
+    $uploader->setSizes($size); // resize image if required
+    $uploader->upload()->getResult(); // upload and get result
+
+    // or you can chain the methods in one line
+    $uploader->setSizes($size)->upload()->getResult();
+```
 
 ## EloquentNestedSet
 

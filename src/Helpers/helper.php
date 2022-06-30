@@ -283,12 +283,13 @@ if (! function_exists('upload_image_v2')) {
     {
         try {
             $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3'));
-            $uploader = new Uploader($source, $disk, $path, $size);
-            return $uploader->upload()->getResult();
+            $uploader = new Uploader($source, $disk, $path);
+            return $uploader->setSizes($size)
+                            ->upload()
+                            ->getResult();
         } catch (Throwable $e) {
             throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
         }
-
     }
 }
 
@@ -297,11 +298,12 @@ if (! function_exists('upload_private_image_v2')) {
     {
         try {
             $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'));
-            $uploader = new Uploader($source, $disk, $path, $size);
-            return $uploader->upload()->getResult();
+            $uploader = new Uploader($source, $disk, $path);
+            return $uploader->setSizes($size)
+                            ->upload()
+                            ->getResult();
         } catch (Throwable $e) {
             throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
         }
-
     }
 }
