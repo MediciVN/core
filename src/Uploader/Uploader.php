@@ -12,13 +12,13 @@ class Uploader
     private string $extension;
     private string $prefix;
     private string $fileName = '';
+    private array $sizes = [];
     private array $result;
     
     public function __construct(
         private $source, 
         private $disk, 
-        private string $path, 
-        private array $sizes = []
+        private string $path
     ) {
         $this->isUploadedFile()
             ->make()
@@ -147,6 +147,13 @@ class Uploader
         $url = $this->put($path, file_get_contents($this->source), 'public');
         $this->image->orientate();
         return $url;
+    }
+
+    public function setSizes(array $sizes): self
+    {
+        $this->sizes = $sizes;
+
+        return $this;
     }
 
     public function setFileName(string $fileName): self
