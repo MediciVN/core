@@ -207,7 +207,7 @@ if (! function_exists('get_image_extension')) {
 if (!function_exists('get_url_private')) {
     function get_url_private($urlImage): string
     {
-        $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'));
+        $urlImage = ltrim(str_replace(env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'),  '', $urlImage), '/');
         $client = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'))->getClient();
         $expiry = "+3 minutes";
         $command = $client->getCommand('GetObject', [
