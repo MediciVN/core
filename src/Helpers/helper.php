@@ -3,7 +3,9 @@
 use Carbon\Carbon;
 use MediciVN\Core\Logger\Logger;
 use Illuminate\Http\UploadedFile;
+use MediciVN\Core\Uploader\Uploader;
 use Illuminate\Support\Facades\Storage;
+use MediciVN\Core\Exceptions\MediciException;
 use Intervention\Image\ImageManagerStatic as Image;
 use Intervention\Image\Exception\NotReadableException;
 
@@ -273,5 +275,33 @@ if (!function_exists('make_seed')) {
     {
         list($usec, $sec) = explode(' ', microtime());
         return $sec + $usec * 1000000;
+    }
+}
+
+if (! function_exists('upload_image_v2')) {
+    function upload_image_v2($source, $path, $size = [])
+    {
+        try {
+            $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3'));
+            $uploader = new Uploader($source, $disk, $path, $size);
+            return $uploader->upload()->getResult();
+        } catch (Throwable $e) {
+            throw new MediciException($e->geCode(), "Could not upload the image. Please check the log for error detail.");
+        }
+
+    }
+}
+
+if (! function_exists('upload_private_image_v2')) {
+    function upload_private_image_v2($source, $path, $size = [])
+    {
+        try {
+            $disk = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'));
+            $uploader = new Uploader($source, $disk, $path, $size);
+            return $uploader->upload()->getResult();
+        } catch (Throwable $e) {
+            throw new MediciException($e->geCode(), "Could not upload the image. Please check the log for error detail.");
+        }
+
     }
 }
