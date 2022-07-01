@@ -207,6 +207,28 @@ if (! function_exists('get_image_extension')) {
 if (!function_exists('get_url_private')) {
     function get_url_private($urlImage): string
     {
+        $client = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'))->getClient();
+        $expiry = "+3 minutes";
+        $command = $client->getCommand('GetObject', [
+            'Bucket' => env('AWS_BUCKET_PRIVATE'), // bucket name
+            'Key' => $urlImage
+        ]);
+        $request = $client->createPresignedRequest($command, $expiry);
+        $url = (string)$request->getUri();
+
+        $url = str_replace(
+            "https://s3." . env('AWS_DEFAULT_REGION_PRIVATE', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET_PRIVATE', 'medici.dev.private'), 
+            env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'), 
+            $url
+        );
+
+        return $url;
+    }
+}
+
+if (!function_exists('get_url_private_v2')) {
+    function get_url_private_v2($urlImage): string
+    {
         $urlImage = ltrim(str_replace(env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'),  '', $urlImage), '/');
         $client = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'))->getClient();
         $expiry = "+3 minutes";
