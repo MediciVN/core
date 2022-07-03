@@ -47,8 +47,7 @@ class Uploader
     protected function put(string $path, string $file, string $place = 'public'): string
     {
         $this->disk->put($path, $file, $place);
-
-        return $this->disk->url($path);
+        return $path;
     }
 
     protected function setPrefix(): self
@@ -144,9 +143,9 @@ class Uploader
     protected function raw(): string
     {
         $path = "{$this->path}/{$this->prefix}.{$this->extension}";
-        $url = $this->put($path, file_get_contents($this->source), 'public');
+        $this->put($path, file_get_contents($this->source), 'public');
         $this->image->orientate();
-        return $url;
+        return $path;
     }
 
     public function setSizes(array $sizes): self
