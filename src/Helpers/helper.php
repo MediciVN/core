@@ -226,29 +226,6 @@ if (!function_exists('get_url_private')) {
     }
 }
 
-if (!function_exists('get_url_private_v2')) {
-    function get_url_private_v2($urlImage): string
-    {
-        $urlImage = ltrim(str_replace(env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'),  '', $urlImage), '/');
-        $client = Storage::disk(env('FILESYSTEM_CLOUD_PRIVATE', 's3_private'))->getClient();
-        $expiry = "+3 minutes";
-        $command = $client->getCommand('GetObject', [
-            'Bucket' => env('AWS_BUCKET_PRIVATE'), // bucket name
-            'Key' => $urlImage
-        ]);
-        $request = $client->createPresignedRequest($command, $expiry);
-        $url = (string)$request->getUri();
-
-        $url = str_replace(
-            "https://s3." . env('AWS_DEFAULT_REGION_PRIVATE', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET_PRIVATE', 'medici.dev.private'), 
-            env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'), 
-            $url
-        );
-
-        return $url;
-    }
-}
-
 if (!function_exists('medici_logger')) {
     /**
      * Create a path log & log info to log file.
@@ -329,5 +306,19 @@ if (! function_exists('upload_private_image_v2')) {
         } catch (Throwable $e) {
             throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
         }
+    }
+}
+
+if (!function_exists('get_url')) {
+    function get_url($path): string
+    {
+        $client = Storage::disk('s3')->getClient();
+        $url = $client->getObjectUrl( env('AWS_BUCKET'), $path);
+        $url = str_replace(
+            "https://s3." . env('AWS_DEFAULT_REGION', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET'), 
+            env('AWS_URL'), 
+            $url
+        );
+        return $url;
     }
 }
