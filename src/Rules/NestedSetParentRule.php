@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
 
 /**
+ * @deprecated NestedSetParentRule will be removed soon, please refer to: https://github.com/MediciVN/core/issues/28
+ * 
  * Just a validation utility for Nested-set tree
  *
  * It will generate additional queries

@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediciVN\Core\Tests\Models\Category;
 use MediciVN\Core\Tests\Models\CategorySoftDelete;
 use MediciVN\Core\Tests\TestCase;
-use Exception;
+use MediciVN\Core\Exceptions\NestedSetParentException;
 
 class EloquentNestedSetTest extends TestCase
 {
@@ -89,9 +89,18 @@ class EloquentNestedSetTest extends TestCase
     }
 
     /** @test */
-    public function it_must_to_throw_exception_if_new_parent_is_a_descendant_of_current_node()
+    public function it_must_to_throw_exception_if_given_parent_is_same_as_current_node_id()
     {
-        $this->expectException(Exception::class);
+        $this->expectException(NestedSetParentException::class);
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c2->parent_id = $c2->id;
+        $c2->save();
+    }
+
+    /** @test */
+    public function it_must_to_throw_exception_if_given_parent_id_is_a_descendant_of_current_node()
+    {
+        $this->expectException(NestedSetParentException::class);
         $c2 = Category::factory()->create(["name" => "Category 2"]);
         $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
         $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c3->id]);

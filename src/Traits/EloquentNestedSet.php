@@ -4,13 +4,14 @@ namespace MediciVN\Core\Traits;
 
 use Closure;
 use Exception;
+use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Throwable;
+use MediciVN\Core\Exceptions\NestedSetParentException;
 
 /**
  * Nested Set Model - hierarchies tree
@@ -461,10 +462,8 @@ trait EloquentNestedSet
             // Khi dùng queue, cần lấy lft và rgt mới nhất trong DB ra tính toán.
             $this->refresh();
 
-            if ($this->hasDescendant($newParentId)) {
-                throw new Exception(
-                    "The new parent node with id={$newParentId} is a descendant of current node id={$this->id}"
-                );
+            if ($newParentId == $this->id || $this->hasDescendant($newParentId)) {
+                throw new NestedSetParentException("The given parent's id is invalid");
             }
 
             $newParent      = static::withoutGlobalScope('ignore_root')->findOrFail($newParentId);
