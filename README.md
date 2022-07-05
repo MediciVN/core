@@ -141,37 +141,6 @@ To get the `root` node, use `withoutGlobalScope('ignore_root')`.
 - `flattenTree`
 - `leafNodes`
 
-### Validation
-
-`NestedSetParentRule` is a utility to validate parent_id value when creating and updating a node.
-
-It will be checked with the following condition:
-
-- exists in the database
-- is not the same as the id of the current entity
-- not a descendant of the current entity
-
-Example:
-
-```injectablephp
-class StoreCategoryRequest extends FormRequest
-{
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, mixed>
-     */
-    public function rules()
-    {
-        return [
-            'parent_id' => [
-                new NestedSetParentRule(Category::class, $this->id)
-            ]
-        ];
-    }
-}
-```
-
 ### Warning
 
 - If you are using `SoftDelete` and intend to stop using it, you must deal with soft deleted records.
