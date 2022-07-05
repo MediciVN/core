@@ -75,7 +75,7 @@ class NestedSetParentRule implements Rule
             return false;
         }
 
-        $parent = $this->model->find($parent_id);
+        $parent = $this->model->withoutGlobalScope('ignore_root')->find($parent_id);
 
         if (!$parent) {
             $this->message = __('validation.parent_nested_sets.exists');
