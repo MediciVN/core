@@ -894,4 +894,16 @@ class EloquentNestedSetTest extends TestCase
         $this->assertEquals([CategorySoftDelete::ROOT_ID, 1, 'Category 13', 22, 23], [$c13->parent_id, $c13->depth, $c13->name, $c13->lft, $c13->rgt]);
         $this->assertEquals([1, 24], [$root->lft, $root->rgt]);
     }
+
+    /** @test */
+    public function it_can_return_correct_data_when_update()
+    {
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3"]);
+        $c3->name = "Category 333";
+        $c3->parent_id = $c2->id;
+        $c3->save();
+        $c3->refresh();
+        $this->assertEquals("Category 333", $c3->name);
+    }
 }

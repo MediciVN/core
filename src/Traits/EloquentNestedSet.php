@@ -181,7 +181,7 @@ trait EloquentNestedSet
             });
         });
 
-        static::updating(function (Model $model) {
+        static::updated(function (Model $model) {
             $oldParentId = $model->getOriginal(static::parentIdColumn());
             $newParentId = $model->{static::parentIdColumn()};
 
@@ -191,7 +191,7 @@ trait EloquentNestedSet
                 $model->{static::parentIdColumn()} = $oldParentId;
 
                 static::instantOrQueue(function () use ($model, $newParentId) {
-                    $model->handleTreeOnUpdating($newParentId);
+                    $model->handleTreeOnUpdated($newParentId);
                 });
             }
         });
@@ -455,7 +455,7 @@ trait EloquentNestedSet
      * @return void
      * @throws Throwable
      */
-    public function handleTreeOnUpdating($newParentId): void
+    public function handleTreeOnUpdated($newParentId): void
     {
         try {
             DB::beginTransaction();
