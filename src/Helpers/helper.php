@@ -310,15 +310,20 @@ if (! function_exists('upload_private_image_v2')) {
 }
 
 if (!function_exists('get_url')) {
-    function get_url($path): string
+    function get_url(string|null $path): string|null
     {
+        if ($path == null) {
+            return null;
+        }
+
         $client = Storage::disk('s3')->getClient();
-        $url = $client->getObjectUrl( env('AWS_BUCKET'), $path);
+        $url = $client->getObjectUrl(env('AWS_BUCKET'), $path);
         $url = str_replace(
             "https://s3." . env('AWS_DEFAULT_REGION', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET'), 
             env('AWS_URL'), 
             $url
         );
+
         return $url;
     }
 }
