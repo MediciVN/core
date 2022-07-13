@@ -73,4 +73,20 @@ trait ApiResponser
 
         return response()->json($response, $codeBag[0]);
     }
+
+    /**
+     * @param CursorPaginator $paginator
+     * @return JsonResponse
+     */
+    public function responseCursorPagination(CursorPaginator $paginator): JsonResponse
+    {
+        $response = [
+            'success' => true,
+            'next_cursor' => $paginator->nextCursor()->encode(),
+            'prev_cursor' => $paginator->previousCursor()->encode(),
+            'data' => $paginator->items(),
+        ];
+
+        return response()->json($response);
+    }
 }
