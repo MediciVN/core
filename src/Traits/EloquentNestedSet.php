@@ -106,7 +106,14 @@ trait EloquentNestedSet
     public static function instantOrQueue(Closure $callback): void
     {
         if (static::queueEnabled()) {
-            dispatch($callback)->onConnection(static::queueConnection())->onQueue(static::queue());
+            $job = dispatch($callback)->afterCommit();
+
+            if (static::queueConnection()) {
+                $job->onConnection(static::queueConnection());
+            }
+            if (static::queue()) {
+                $job->onQueue(static::queue());
+            }
         } else {
             $callback();
         }
