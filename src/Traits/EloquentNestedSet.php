@@ -163,7 +163,7 @@ trait EloquentNestedSet
      * @return void
      * @throws Throwable
      */
-    public static function booted(): void
+    public static function bootEloquentNestedSet(): void
     {
         // If queue is declared, SoftDelete is required
         if (static::queueEnabled() && !static::IsSoftDelete()) {
