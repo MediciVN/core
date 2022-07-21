@@ -330,6 +330,60 @@ class EloquentNestedSetTest extends TestCase
     }
 
     /** @test */
+    public function it_can_return_ancestors_tree()
+    {
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c2->id]);
+        $c5 = Category::factory()->create(["name" => "Category 5", "parent_id" => $c3->id]);
+        $c6 = Category::factory()->create(["name" => "Category 6", "parent_id" => $c3->id]);
+        $c7 = Category::factory()->create(["name" => "Category 7", "parent_id" => $c5->id]);
+        $c8 = Category::factory()->create(["name" => "Category 8", "parent_id" => $c5->id]);
+
+        $c8->refresh();
+
+        $ancestorsTree = $c8->getAncestorsTree(['id', 'name', 'parent_id', 'lft', 'rgt', 'depth']);
+
+        $this->assertEquals(1, count($ancestorsTree));
+        $this->assertEquals($ancestorsTree[0]->id, $c2->id);
+        //
+        $this->assertEquals(1, count($ancestorsTree[0]->children));
+        $this->assertEquals($ancestorsTree[0]->children[0]->id, $c3->id);
+        //
+        $this->assertEquals(1, count($ancestorsTree[0]->children[0]->children));
+        $this->assertEquals($ancestorsTree[0]->children[0]->children[0]->id, $c5->id);
+        $this->assertEquals($ancestorsTree[0]->children[0]->children[0]->id, $c8->parent_id);
+        //
+        $this->assertEquals(0, count($ancestorsTree[0]->children[0]->children[0]->children));
+    }
+
+    /** @test */
+    public function it_can_return_descendant_nested_tree()
+    {
+        $c2 = Category::factory()->create(["name" => "Category 2"]);
+        $c3 = Category::factory()->create(["name" => "Category 3", "parent_id" => $c2->id]);
+        $c4 = Category::factory()->create(["name" => "Category 4", "parent_id" => $c2->id]);
+        $c5 = Category::factory()->create(["name" => "Category 5", "parent_id" => $c3->id]);
+        $c6 = Category::factory()->create(["name" => "Category 6", "parent_id" => $c3->id]);
+        $c7 = Category::factory()->create(["name" => "Category 7", "parent_id" => $c5->id]);
+        $c8 = Category::factory()->create(["name" => "Category 8", "parent_id" => $c5->id]);
+
+        $c3->refresh();
+        $descendantsTree = $c3->getDescendantsTree(['id', 'name', 'parent_id', 'lft', 'rgt', 'depth']);
+
+        $this->assertEquals(2, count($descendantsTree));
+        $this->assertEquals($descendantsTree[0]->id, $c5->id);
+        $this->assertEquals($descendantsTree[1]->id, $c6->id);
+        //
+        $this->assertEquals(2, count($descendantsTree[0]->children));
+        $this->assertEquals($descendantsTree[0]->children[0]->id, $c7->id);
+        $this->assertEquals($descendantsTree[0]->children[1]->id, $c8->id);
+
+        $this->assertEquals(0, count($descendantsTree[0]->children[0]->children));
+        $this->assertEquals(0, count($descendantsTree[0]->children[0]->children));
+    }
+
+    /** @test */
     public function it_can_return_leaf_nodes()
     {
         Category::factory()->createMany([
