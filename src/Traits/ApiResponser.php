@@ -3,6 +3,7 @@
 namespace MediciVN\Core\Traits;
 
 use App\Utilities\ResponseStatus;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Http\JsonResponse;
 
 trait ApiResponser
@@ -72,5 +73,21 @@ trait ApiResponser
         ];
 
         return response()->json($response, $codeBag[0]);
+    }
+
+    /**
+     * @param CursorPaginator $paginator
+     * @return JsonResponse
+     */
+    public function responseCursorPagination(CursorPaginator $paginator): JsonResponse
+    {
+        $response = [
+            'success' => true,
+            'next_cursor' => $paginator->nextCursor()?->encode(),
+            'prev_cursor' => $paginator->previousCursor()?->encode(),
+            'data' => $paginator->items(),
+        ];
+
+        return response()->json($response);
     }
 }
