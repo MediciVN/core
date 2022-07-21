@@ -8,7 +8,7 @@ use MediciVN\Core\Utilities\ResponseStatus;
 trait StatusCodeParser
 {
     /**
-     * Get HTTP status and application code from reponse status code
+     * Get HTTP status and application code from response status code
      *
      * @param string $code
      * @return array
@@ -31,4 +31,9 @@ trait StatusCodeParser
 
 		return collect($bagCode)->map(fn($i) => (int) $i)->all();
 	}
+
+    public function getAppCode(string $code): int
+    {
+        return (int) $this->parseStatusCode($code)[1];
+    }
 }
