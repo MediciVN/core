@@ -266,10 +266,13 @@ trait EloquentNestedSet
      * Các entity cha trong 1 cây sẽ có
      * - left nhỏ hơn left của entity hiện tại
      * - right lớn hơn right của entity hiện tại
+     *
+     * @param array $columns
+     * @return Collection
      */
-    public function getAncestors()
+    public function getAncestors(array $columns = ['*']): Collection
     {
-        return $this->ancestors()->orderBy(static::leftColumn(), 'DESC')->get();
+        return $this->ancestors()->orderBy(static::leftColumn(), 'DESC')->get($columns);
     }
 
     /**
@@ -278,10 +281,13 @@ trait EloquentNestedSet
      * Các entity con trong 1 cây sẽ có
      * - left lớn hơn left của entity hiện tại
      * - right nhỏ hơn right của entity hiện tại
+     *
+     * @param array $columns
+     * @return Collection
      */
-    public function getDescendants()
+    public function getDescendants(array $columns = ['*']): Collection
     {
-        return $this->descendants()->get();
+        return $this->descendants()->get($columns);
     }
 
     /**
@@ -312,13 +318,19 @@ trait EloquentNestedSet
      */
     public static function buildNestedTree(Collection $nodes): Collection
     {
-        $tree = collect([]);
-        $groupNodes = $nodes->groupBy(static::parentIdColumn());
-        $tree->push(...$groupNodes->get(static::rootId()) ?? []);
+        $tree           = collect([]);
+        $groupNodes     = $nodes->groupBy(static::parentIdColumn());
+        $ids            = $nodes->pluck(static::primaryColumn());
+        $parentIds      = $nodes->pluck(static::parentIdColumn());
+        $topParentIds   = $parentIds->diff($ids)->unique();
+
+        $topParentIds->each(function ($id) use ($tree, $groupNodes) {
+            $tree->push(...$groupNodes->get($id, []));
+        });
 
         $getChildrenFunc = function ($tree) use (&$getChildrenFunc, $groupNodes) {
             foreach ($tree as $item) {
-                $item->children = $groupNodes->get($item->id) ?: [];
+                $item->children = $groupNodes->get($item->id, []);
                 $getChildrenFunc($item->children);
             }
         };
@@ -329,55 +341,63 @@ trait EloquentNestedSet
 
     /**
      * Get all nodes in nested array
+     *
+     * @param array $columns
+     * @return Collection
      */
-    public static function getTree(): Collection
+    public static function getTree(array $columns = ['*']): Collection
     {
-        return static::buildNestedTree(static::flattenTree()->get());
+        return static::buildNestedTree(static::flattenTree()->get($columns));
     }
 
     /**
      * Get all nodes order by parent-children relationship in flat array
      *
+     * @param array $columns
      * @return Collection
      */
-    public static function getFlatTree(): Collection
+    public static function getFlatTree(array $columns = ['*']): Collection
     {
-        return static::flattenTree()->get();
+        return static::flattenTree()->get($columns);
     }
 
     /**
      * Get all leaf nodes
      *
+     * @param array $columns
      * @return mixed
      */
-    public static function getLeafNodes()
+    public static function getLeafNodes(array $columns = ['*'])
     {
-        return static::leafNodes()->get();
+        return static::leafNodes()->get($columns);
     }
 
     /**
      * Get all parent in nested array
      *
+     * @param array $columns
      * @return Collection
      */
-    public function getAncestorsTree(): Collection
+    public function getAncestorsTree(array $columns = ['*']): Collection
     {
-        return static::buildNestedTree($this->ancestors()->get());
+        return static::buildNestedTree($this->ancestors()->get($columns));
     }
 
     /**
      * Get all descendants in nested array
      *
+     * @param array $columns
      * @return Collection
      */
-    public function getDescendantsTree(): Collection
+    public function getDescendantsTree(array $columns = ['*']): Collection
     {
-        return static::buildNestedTree($this->descendants()->get());
+        return static::buildNestedTree($this->descendants()->get($columns));
     }
 
     /**
      * Check given id is a ancestor of current instance
      *
+     * @param $id
      * @return bool
      */
     public function hasAncestor($id): bool
@@ -388,6 +408,7 @@ trait EloquentNestedSet
     /**
      * Check given id is a descendant of current instance
      *
+     * @param $id
      * @return bool
      */
     public function hasDescendant($id): bool
