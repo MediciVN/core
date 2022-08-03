@@ -3,7 +3,7 @@
 namespace MediciVN\Core\Uploader;
 
 use Exception;
-use Intervention\Image\ImageManagerStatic as Image; 
+use Intervention\Image\ImageManagerStatic as Image;
 use Intervention\Image\Exception\NotReadableException;
 use Illuminate\Http\UploadedFile;
 class Uploader
@@ -14,10 +14,10 @@ class Uploader
     private string $fileName = '';
     private array $sizes = [];
     private array $result;
-    
+
     public function __construct(
-        private $source, 
-        private $disk, 
+        private $source,
+        private $disk,
         private string $path
     ) {
         $this->isUploadedFile()
@@ -47,7 +47,7 @@ class Uploader
     protected function put(string $path, string $file, string $place = 'public'): string
     {
         $this->disk->put($path, $file, $place);
-        return $path;
+        return $this->disk->path($path);
     }
 
     protected function setPrefix(): self
@@ -145,7 +145,7 @@ class Uploader
         $path = "{$this->path}/{$this->prefix}.{$this->extension}";
         $this->put($path, file_get_contents($this->source), 'public');
         $this->image->orientate();
-        return $path;
+        return $this->disk->path($path);
     }
 
     public function setSizes(array $sizes): self
