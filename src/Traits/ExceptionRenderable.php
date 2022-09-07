@@ -16,14 +16,6 @@ trait ExceptionRenderable
     public function exceptionRenderResponse($e): JsonResponse
     {
         try {
-            // write error to log file
-            medici_logger('medici', 'InternalError', [
-                'error' => $e->getMessage(),
-                'level' => 'error',
-            ], [
-                'log_user' => false
-            ]);
-
             return match (true) {
                 $e instanceof AuthenticationException => $this->errorResponse(ResponseStatus::TOKEN_REMOVED),
                 $e instanceof RouteNotFoundException => $this->errorResponse(ResponseStatus::TOKEN_REMOVED),
@@ -34,6 +26,15 @@ trait ExceptionRenderable
                 default => $this->errorResponse(ResponseStatus::INTERNAL_ERROR),
             };
         } catch (Throwable $th) {
+
+            // write error to log file
+            medici_logger('medici', 'InternalError', [
+                'error' => $e->getMessage(),
+                'level' => 'error',
+            ], [
+                'log_user' => false
+            ]);
+            
             throw new MediciException(ResponseStatus::INTERNAL_ERROR, $th->getMessage());
         }
     }
