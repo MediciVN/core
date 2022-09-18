@@ -28,6 +28,61 @@ interface RepositoryInterface
     public function all(array $columns = ['*']): Collection;
 
     /**
+     * Sync relations
+     *
+     * @param [type] $id
+     * @param [type] $relation
+     * @param [type] $attributes
+     * @param boolean $detaching
+     * 
+     * @return mixed
+     */
+    public function sync($id, $relation, $attributes, $detaching = true): mixed;
+
+    /**
+     * Sync relations without detaching
+     *
+     * @param [type] $id
+     * @param [type] $relation
+     * @param [type] $attributes
+     * 
+     * @return mixed
+     */
+    public function syncWithoutDetaching($id, $relation, $attributes): mixed;
+
+    /**
+     * Alias of all method
+     *
+     * @param array $columns
+     * @return Collection
+     */
+    public function get(array $columns = ['*']): Collection;
+
+    /**
+     * Retrieve the first record of repository
+     *
+     * @param array $columns
+     * @return Model
+     */
+    public function first(array $columns = ['*']): Model;
+
+    /**
+     * Retrieve first model of repository, or return new Model
+     *
+     * @param array $attributes
+     * @return mixed
+     */
+    public function firstOrNew(array $attributes = []): mixed;
+
+    /**
+     * Retrieve first model of repository, or create new Model
+     *
+     * @param array $attributes
+     * @return mixed
+     */
+    public function firstOrCreate(array $attributes = []): mixed;
+
+    /**
      * Retrieve all data of repository, paginated
      *
      * @param int $limit
@@ -138,6 +193,14 @@ interface RepositoryInterface
     public function orderBy(string $column, string $direction = 'asc'): self;
 
     /**
+     * Set the limit for query
+     *
+     * @param integer $limit
+     * @return self
+     */
+    public function take(int $limit): self;
+
+    /**
      * Load relations
      *
      * @param $relations
@@ -153,6 +216,14 @@ interface RepositoryInterface
      * @return $this
      */
     public function withCount($relations): self;
+
+    /**
+     * Check if model has relation
+     *
+     * @param string $relation
+     * @return self
+     */
+    public function has(string $relation): self;
 
     /**
      * Query Scope

@@ -27,16 +27,10 @@ abstract class BaseRepository implements RepositoryInterface
         $this->model = $this->makeModel();
     }
 
-    /**
-     * @return string
-     */
+    /** @inheritDoc */
     abstract public function model(): string;
 
-    /**
-     * @return Model
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function makeModel(): Model
     {
         $model = $this->app->make($this->model());
@@ -48,66 +42,91 @@ abstract class BaseRepository implements RepositoryInterface
         return $this->model = $model;
     }
 
-    /**
-     * @return Model
-     */
+    /** @inheritDoc */
     public function getModel(): Model
     {
         return $this->model;
     }
 
-    /**
-     * @return void
-     * @throws RepositoryException
-     * @throws BindingResolutionException
-     */
+    /** @inheritDoc */
     public function resetModel(): void
     {
         $this->makeModel();
     }
 
-    /**
-     * @param Closure $scope
-     * @return $this
-     */
+    /** @inheritDoc */
     public function scopeQuery(Closure $scope): self
     {
         $this->scopeQuery = $scope;
         return $this;
     }
 
-    /**
-     * @param $column
-     * @param $key
-     * @return Collection
-     */
+    /** @inheritDoc */
     public function pluck($column, $key = null): Collection
     {
         return $this->model->pluck($column, $key);
     }
 
-    /**
-     * @param array $columns
-     * @return Collection
-     */
+    /** @inheritDoc */
     public function all(array $columns = ['*']): Collection
     {
+        $this->applyScope();
+
         if ($this->model instanceof Builder) {
-            return $this->resultParser($this->model->get($columns));
+            $results = $this->model->get($columns);
+        } else {
+            $results = $this->model->all($columns);
         }
 
-        return $this->resultParser($this->model->all($columns));
+        $this->resetModel();
+        $this->resetScope();
+
+        return $this->resultParser($results);
     }
 
-    /**
-     * @param array $where
-     * @param string $columns
-     * @return int
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
+    public function sync($id, $relation, $attributes, $detaching = true): mixed
+    {
+        return $this->find($id)->{$relation}()->sync($attributes, $detaching);
+    }
+
+    /** @inheritDoc */
+    public function syncWithoutDetaching($id, $relation, $attributes): mixed
+    {
+        return $this->sync($id, $relation, $attributes, false);
+    }
+
+    /** @inheritDoc */
+    public function firstOrNew(array $attributes = []): mixed
+    {
+        $this->applyScope();
+
+        $model = $this->model->firstOrNew($attributes);
+
+        $this->resetModel();
+        $this->resetScope();
+
+        return $this->resultParser($model);
+    }
+
+    /** @inheritDoc */
+    public function firstOrCreate(array $attributes = []): mixed
+    {
+        $this->applyScope();
+
+        $model = $this->model->firstOrCreate($attributes);
+
+        $this->resetModel();
+        $this->resetScope();
+
+        return $this->resultParser($model);
+    }
+
+    /** @inheritDoc */
     public function count(array $where = [], string $columns = '*'): int
     {
+        $this->applyScope();
+
         if ($where) {
             $this->applyConditions($where);
         }
@@ -115,125 +134,103 @@ abstract class BaseRepository implements RepositoryInterface
         $result = $this->model->count($columns);
 
         $this->resetModel();
+        $this->resetScope();
 
         return $result;
     }
 
-    /**
-     * @param array $columns
-     * @return Collection
-     */
+    /** @inheritDoc */
     public function get(array $columns = ['*']): Collection
     {
         return $this->all($columns);
     }
 
-    /**
-     * @param array $columns
-     * @return Model
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function first(array $columns = ['*']): Model
     {
+        $this->applyScope();
+
         $result = $this->model->first($columns);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($result);
     }
 
-    /**
-     * @param int $limit
-     * @param array $columns
-     * @param string $method
-     * @return mixed
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function paginate(int $limit = 15, array $columns = ['*'], string $method = 'paginate'): mixed
     {
+        $this->applyScope();
+
         $result = $this->model->{$method}($limit, $columns);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($result);
     }
 
-    /**
-     * @param int $limit
-     * @param array $columns
-     * @return mixed
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function simplePaginate(int $limit = 15, array $columns = ['*']): mixed
     {
         return $this->paginate($limit, $columns, 'simplePaginate');
     }
 
-    /**
-     * @param $id
-     * @param array $columns
-     * @return Model
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function find($id, array $columns = ['*']): Model
     {
+        $this->applyScope();
+
         $model = $this->model->findOrFail($id, $columns);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($model);
     }
 
-    /**
-     * @param string $field
-     * @param null $value
-     * @param array $columns
-     * @return Collection
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function findByField(string $field, $value = null, array $columns = ['*']): Collection
     {
+        $this->applyScope();
+
         $models = $this->model->where($field, '=', $value)->get($columns);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($models);
     }
 
-    /**
-     * @param array $where
-     * @param array $columns
-     * @return Collection
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function findWhere(array $where, array $columns = ['*']): Collection
     {
         $this->applyConditions($where);
+        $this->applyScope();
+
         $models = $this->model->get($columns);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($models);
     }
 
-    /**
-     * @param string $field
-     * @param array $values
-     * @param array $columns
-     * @return Collection
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function findWhereIn(string $field, array $values, array $columns = ['*']): Collection
     {
         $this->applyScope();
+
         $models = $this->model->whereIn($field, $values)->get($columns);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($models);
     }
 
-    /**
-     * @param array $attributes
-     * @return Model
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function create(array $attributes): Model
     {
         $model = $this->model->newInstance($attributes);
@@ -242,96 +239,96 @@ abstract class BaseRepository implements RepositoryInterface
         return $this->resultParser($model);
     }
 
-    /**
-     * @param array $attributes
-     * @param $id
-     * @return Model
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function update(array $attributes, $id): Model
     {
+        $this->applyScope();
+
         $model = $this->model->findOrFail($id);
         $model->fill($attributes);
         $model->save();
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($model);
     }
 
-    /**
-     * @param array $attributes
-     * @param array $values
-     * @return Model
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function updateOrCreate(array $attributes, array $values = []): Model
     {
+        $this->applyScope();
+
         $model = $this->model->updateOrCreate($attributes, $values);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $this->resultParser($model);
     }
 
-    /**
-     * @param $id
-     * @return bool
-     * @throws BindingResolutionException
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function delete($id): bool
     {
+        $this->applyScope();
+
         $model = $this->find($id);
+
         $this->resetModel();
+        $this->resetScope();
+
         return $model->delete();
     }
 
+    /** @inheritDoc */
     public function orderBy(string $column, string $direction = 'asc'): self
     {
         $this->model = $this->model->orderBy($column, $direction);
         return $this;
     }
 
-    /**
-     * @param $relations
-     * @return $this
-     */
+    /** @inheritDoc */
+    public function take(int $limit): self
+    {
+        $this->model = $this->model->limit($limit);
+        return $this;
+    }
+
+    /** @inheritDoc */
     public function with($relations): self
     {
         $this->model = $this->model->with($relations);
         return $this;
     }
 
-    /**
-     * @param $relations
-     * @return $this
-     */
+    /** @inheritDoc */
     public function withCount($relations): self
     {
         $this->model = $this->model->withCount($relations);
         return $this;
     }
 
-    /**
-     * @param $result
-     * @return mixed
-     */
+    /** @inheritDoc */
+    public function has(string $relation): self
+    {
+        $this->model = $this->model->has($relation);
+        return $this;
+    }
+
+    /** @inheritDoc */
     public function resultParser($result): mixed
     {
         return $result;
     }
 
-    /**
-     * @param array $where
-     * @return void
-     * @throws RepositoryException
-     */
+    /** @inheritDoc */
     public function applyConditions(array $where): void
     {
         foreach ($where as $field => $value) {
             if (is_array($value)) {
 
                 if (count($value) < 3) {
-                    throw new RepositoryException("Format condition invalid");
+                    throw new RepositoryException("Invalid condition format");
                 }
 
                 $field = $value[0];
@@ -409,9 +406,7 @@ abstract class BaseRepository implements RepositoryInterface
         }
     }
 
-    /**
-     * @return $this
-     */
+    /** @inheritDoc */
     public function applyScope(): self
     {
         if (isset($this->scopeQuery) && is_callable($this->scopeQuery)) {
@@ -422,30 +417,20 @@ abstract class BaseRepository implements RepositoryInterface
         return $this;
     }
 
-    /**
-     * @return $this
-     */
+    /** @inheritDoc */
     public function resetScope(): self
     {
         $this->scopeQuery = null;
         return $this;
     }
 
-    /**
-     * @param string $method
-     * @param array $arguments
-     * @return mixed
-     */
+    /** @inheritDoc */
     public static function __callStatic(string $method, array $arguments): mixed
     {
         return call_user_func_array([new static(), $method], $arguments);
     }
 
-    /**
-     * @param string $method
-     * @param array $arguments
-     * @return mixed
-     */
+    /** @inheritDoc */
     public function __call(string $method, array $arguments): mixed
     {
         return call_user_func_array([$this->model, $method], $arguments);
