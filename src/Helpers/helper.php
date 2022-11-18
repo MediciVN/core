@@ -123,7 +123,6 @@ if (!function_exists('resize_image')) {
 }
 
 if (!function_exists('upload_private_images')) {
-
     /**
      * @param $source
      * @param $targetPath
@@ -217,8 +216,8 @@ if (!function_exists('get_url_private')) {
         $url = (string)$request->getUri();
 
         $url = str_replace(
-            "https://s3." . env('AWS_DEFAULT_REGION_PRIVATE', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET_PRIVATE', 'medici.dev.private'), 
-            env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'), 
+            "https://s3." . env('AWS_DEFAULT_REGION_PRIVATE', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET_PRIVATE', 'medici.dev.private'),
+            env('AWS_URL_PRIVATE', 'https://dev-private.cdn.medici.vn'),
             $url
         );
 
@@ -247,7 +246,6 @@ if (!function_exists('medici_logger')) {
 }
 
 if (!function_exists('generate_random_verification_code')) {
-
     /**
      * The function generate random verification
      *
@@ -266,7 +264,6 @@ if (!function_exists('generate_random_verification_code')) {
 }
 
 if (!function_exists('make_seed')) {
-
     /**
      * @return float|int|string
      */
@@ -319,11 +316,46 @@ if (!function_exists('get_url')) {
         $client = Storage::disk('s3')->getClient();
         $url = $client->getObjectUrl(env('AWS_BUCKET'), $path);
         $url = str_replace(
-            "https://s3." . env('AWS_DEFAULT_REGION', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET'), 
-            env('AWS_URL'), 
+            "https://s3." . env('AWS_DEFAULT_REGION', 'ap-southeast-1') . ".amazonaws.com/" . env('AWS_BUCKET'),
+            env('AWS_URL'),
             $url
         );
 
         return $url;
+    }
+}
+
+if (!function_exists('upload_file')) {
+    /**
+     * The function upload file
+     *
+     * @param $source
+     * @param $targetPath
+     * @return false|string
+     */
+    function upload_file($source, $targetPath, $filename = ''): bool|string
+    {
+        if (!($source instanceof UploadedFile) && !filter_var($source, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+        $extension = pathinfo($source->getClientOriginalName(), PATHINFO_EXTENSION);
+
+        if ($filename != '') {
+            $filenamePrefix = $filename;
+        } else {
+            $filenamePrefix = implode('_', [
+                auth()->id(),
+                pathinfo($source->getClientOriginalName(), PATHINFO_FILENAME),
+                uniqid(Carbon::now()->timestamp),
+            ]);
+        }
+        $filenamePrefix = ltrim($filenamePrefix, '/');
+
+        $targetPath = rtrim($targetPath, '/');
+        $disk = Storage::disk(env('FILESYSTEM_CLOUD', 's3'));
+
+        $filepath = "{$targetPath}/{$filenamePrefix}.{$extension}";
+        $disk->put($filepath, file_get_contents($source), 'public');
+        return $disk->url($filepath);
     }
 }
