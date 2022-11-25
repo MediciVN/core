@@ -1,6 +1,7 @@
 <?php
 
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use MediciVN\Core\Logger\Logger;
 use Illuminate\Http\UploadedFile;
 use MediciVN\Core\Uploader\Uploader;
@@ -28,7 +29,7 @@ if (!function_exists('upload_images')) {
         $targetPath = rtrim($targetPath, '/');
 
         if ($filename != '') {
-            $filenamePrefix = $filename;
+            $filenamePrefix = Str::slug($filename);
         } else {
             $filenamePrefix = implode('_', [
                 auth()->id(),
@@ -285,7 +286,7 @@ if (! function_exists('upload_image_v2')) {
                             ->upload()
                             ->getResult();
         } catch (Throwable $e) {
-            throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
+            throw new MediciException($e->getCode(), $e->getMessage());
         }
     }
 }
@@ -301,7 +302,7 @@ if (! function_exists('upload_private_image_v2')) {
                             ->upload()
                             ->getResult();
         } catch (Throwable $e) {
-            throw new MediciException($e->getCode(), "Could not upload the image. Please check the log for error detail.");
+            throw new MediciException($e->getCode(), $e->getMessage());
         }
     }
 }
@@ -341,7 +342,7 @@ if (!function_exists('upload_file')) {
         $extension = pathinfo($source->getClientOriginalName(), PATHINFO_EXTENSION);
 
         if ($filename != '') {
-            $filenamePrefix = $filename;
+            $filenamePrefix = Str::slug($filename);
         } else {
             $filenamePrefix = implode('_', [
                 auth()->id(),
