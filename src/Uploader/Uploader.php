@@ -3,9 +3,11 @@
 namespace MediciVN\Core\Uploader;
 
 use Exception;
+use Illuminate\Support\Str;
+use Illuminate\Http\UploadedFile;
 use Intervention\Image\ImageManagerStatic as Image;
 use Intervention\Image\Exception\NotReadableException;
-use Illuminate\Http\UploadedFile;
+
 class Uploader
 {
     private $image;
@@ -157,7 +159,7 @@ class Uploader
 
     public function setFileName(string $fileName): self
     {
-        $this->fileName = $fileName;
+        $this->fileName = Str::slug($fileName);
         return $this;
     }
 
